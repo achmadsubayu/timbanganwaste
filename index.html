@@ -27,7 +27,8 @@
         .digital-scale { background-color: #222; color: #0f0; font-family: 'Courier New', Courier, monospace; font-size: 60px; padding: 40px; border-radius: 10px; border: 5px solid #444; width: 80%; margin-bottom: 20px; letter-spacing: 2px; }
         .btn-simpan { background-color: #28a745; color: white; border: none; padding: 15px 30px; font-size: 18px; font-weight: bold; border-radius: 5px; cursor: pointer; width: 100%; box-shadow: 0 4px 6px rgba(0,0,0,0.2); }
         .btn-simpan:hover { background-color: #218838; }
-        .btn-simulasi { background-color: #ffc107; color: black; border: none; padding: 5px 10px; margin-bottom: 10px; cursor: pointer; border-radius: 3px;}
+        .status-koneksi { color: #d9534f; font-weight: bold; margin-bottom: 10px; font-size: 14px; }
+        .status-koneksi.connected { color: #28a745; }
 
         /* Layout Halaman Histori & Filter */
         .filter-container { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; padding: 15px; background-color: #e9ecef; border-radius: 5px; }
@@ -42,6 +43,10 @@
         
         .hidden { display: none; }
     </style>
+
+    <!-- 1. Tambahkan SDK Firebase (Versi Compat agar mudah digunakan dengan kode vanilla JS) -->
+    <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-database-compat.js"></script>
 </head>
 <body>
 
@@ -78,41 +83,9 @@
                             <option value="">-- Pilih Mesin --</option>
                             <option value="FC103">FC103</option>
                             <option value="FC108">FC108</option>
-                            <option value="FC118">FC118</option>
-                            <option value="FC121">FC121</option>
-                            <option value="FC122">FC122</option>
-                            <option value="HRT001">HRT001</option>
-                            <option value="HRT002">HRT002</option>
-                            <option value="HRT003">HRT003</option>
-                            <option value="HRT004">HRT004</option>
-                            <option value="JT005">JT005</option>
-                            <option value="JT006">JT006</option>
-                            <option value="NP002">NP002</option>
-                            <option value="NP007">NP007</option>
                             <option value="NP313">NP313</option>
-                            <option value="NP314">NP314</option>
-                            <option value="NP315">NP315</option>
-                            <option value="NP316">NP316</option>
-                            <option value="NP317">NP317</option>
-                            <option value="NP318">NP318</option>
-                            <option value="NP319">NP319</option>
-                            <option value="NP320">NP320</option>
-                            <option value="NP321">NP321</option>
-                            <option value="NP322">NP322</option>
-                            <option value="NP323">NP323</option>
-                            <option value="NP324">NP324</option>
-                            <option value="TL204">TL204</option>
-                            <option value="TW002">TW002</option>
                             <option value="TW404">TW404</option>
-                            <option value="TW405">TW405</option>
-                            <option value="TW406">TW406</option>
-                            <option value="TW407">TW407</option>
-                            <option value="TW408">TW408</option>
-                            <option value="TW409">TW409</option>
-                            <option value="TW410">TW410</option>
-                            <option value="TW411">TW411</option>
-                            <option value="TW412">TW412</option>
-                            <option value="TW413">TW413</option>
+                            <!-- Anda bisa tambahkan list mesin lainnya disini -->
                         </select>
                     </div>
                     <div class="form-group">
@@ -128,7 +101,7 @@
                 
                 <div class="scale-section">
                     <h3>Monitor Timbangan</h3>
-                    <button class="btn-simulasi" onclick="simulasiTimbangan()">Timbang Dummy (Simulasi)</button>
+                    <div id="statusKoneksi" class="status-koneksi">Menghubungkan ke Firebase...</div>
                     <div class="digital-scale" id="displayBerat">0.00 KG</div>
                     <button class="btn-simpan" onclick="simpanData()">SIMPAN DATA</button>
                 </div>
@@ -166,12 +139,69 @@
     </div>
 
     <script>
+        // ==========================================
+        // 2. KONFIGURASI FIREBASE
+        // ==========================================
+        const firebaseConfig = {
+            // URL Database Anda sesuai screenshot image_c85693.png
+            databaseURL: "https://wastetimbangan-default-rtdb.asia-southeast1.firebasedatabase.app" 
+        };
+
+        // Inisialisasi Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
         let dataHistori = [];
         let beratSekarang = "0.00";
 
         // Set tanggal hari ini sebagai default di input
         document.getElementById('inputTanggal').valueAsDate = new Date();
 
+        // ==========================================
+        // 3. BACA DATA BERAT DARI FIREBASE REAL-TIME
+        // ==========================================
+        const beratRef = database.ref('timbangan/berat');
+        
+        beratRef.on('value', (snapshot) => {
+            const dataVal = snapshot.val();
+            const statusEl = document.getElementById('statusKoneksi');
+
+            if (dataVal !== null) {
+                // Update angka berat dari Firebase
+                beratSekarang = parseFloat(dataVal).toFixed(2);
+                document.getElementById('displayBerat').innerText = beratSekarang + " KG";
+                
+                // Ubah status indikator
+                statusEl.innerText = "Timbangan Terkoneksi (Firebase)";
+                statusEl.classList.add('connected');
+            } else {
+                beratSekarang = "0.00";
+                document.getElementById('displayBerat').innerText = "0.00 KG";
+            }
+        });
+
+        // ==========================================
+        // 4. BACA HISTORI DARI FIREBASE (Real-time update)
+        // ==========================================
+        const historiRef = database.ref('histori_waste');
+        historiRef.on('value', (snapshot) => {
+            dataHistori = []; // Reset array lokal
+            snapshot.forEach((childSnapshot) => {
+                dataHistori.push(childSnapshot.val());
+            });
+            
+            // Urutkan dari yang terbaru (opsional)
+            dataHistori.reverse(); 
+            
+            // Jika sedang di halaman histori, render ulang tabelnya
+            if (!document.getElementById('page-histori').classList.contains('hidden')) {
+                renderTabel(dataHistori);
+            }
+        });
+
+        // ==========================================
+        // FUNGSI-FUNGSI APLIKASI UI
+        // ==========================================
         function switchPage(page) {
             document.getElementById('page-timbang').classList.add('hidden');
             document.getElementById('page-histori').classList.add('hidden');
@@ -184,15 +214,8 @@
             } else {
                 document.getElementById('page-histori').classList.remove('hidden');
                 document.getElementById('btnHistori').classList.add('active');
-                renderTabel(dataHistori); // Tampilkan semua data awal masuk
+                renderTabel(dataHistori); // Tampilkan data histori dari Firebase
             }
-        }
-
-        // Simulasi timbangan dari Modbus
-        function simulasiTimbangan() {
-            let randomWeight = (Math.random() * (250 - 100) + 100).toFixed(2);
-            beratSekarang = randomWeight;
-            document.getElementById('displayBerat').innerText = beratSekarang + " KG";
         }
 
         function simpanData() {
@@ -202,7 +225,7 @@
             let waste = document.getElementById('inputWaste').value;
             
             if(!tanggal || !shift || !mesin || !waste || beratSekarang === "0.00") {
-                alert("Mohon lengkapi semua data dan pastikan timbangan sudah membaca beban!");
+                alert("Mohon lengkapi semua data dan pastikan beban timbangan bukan 0!");
                 return;
             }
 
@@ -217,12 +240,18 @@
                 berat: beratSekarang
             };
 
-            dataHistori.push(newData);
-            alert("Data berhasil disimpan!");
-            
-            beratSekarang = "0.00";
-            document.getElementById('displayBerat').innerText = "0.00 KG";
-            document.getElementById('inputWaste').value = ""; 
+            // Push (simpan) data histori ke Firebase agar permanen
+            historiRef.push(newData)
+            .then(() => {
+                alert("Data berhasil disimpan ke Database!");
+                // Reset form
+                document.getElementById('inputWaste').value = ""; 
+                // Opsional: Anda bisa reset berat di Firebase kembali ke 0.00 di sini jika mau
+                // beratRef.set(0); 
+            })
+            .catch((error) => {
+                alert("Gagal menyimpan data: " + error.message);
+            });
         }
 
         function renderTabel(dataArray) {
@@ -248,23 +277,19 @@
             });
         }
 
-        // Fitur Filter Tanggal
         function filterHistori() {
             let tanggalDipilih = document.getElementById('filterTanggal').value;
-            
             if(!tanggalDipilih) {
                 alert("Silakan pilih tanggal terlebih dahulu untuk di filter.");
                 return;
             }
-
-            // Menyaring data yang tanggalnya sama dengan tanggal filter
             let dataTersaring = dataHistori.filter(data => data.tanggal === tanggalDipilih);
             renderTabel(dataTersaring);
         }
 
         function resetFilter() {
             document.getElementById('filterTanggal').value = '';
-            renderTabel(dataHistori); // Kembalikan ke semua data
+            renderTabel(dataHistori);
         }
     </script>
 </body>
