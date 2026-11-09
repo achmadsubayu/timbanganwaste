@@ -149,10 +149,10 @@
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
 
-        // URL Publikasi CSV dari Google Sheets (Untuk BACA data histori)
+        // URL Publikasi CSV dari Google Sheets
         const csvSheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRoBeMpS0gr495cVBuLrVVtIq3D_UsiRxnum6rLJHvg5lgo1d9HjAM51m9ew1z67hwX5Lh5lqlGQtZF/pub?gid=0&single=true&output=csv";
         
-        // URL Apps Script (Untuk SIMPAN data - Nanti kita buat)
+        // URL Apps Script
         const scriptURL = "https://script.google.com/macros/s/AKfycbw6TaSt4suFpA8i_2Ukw3FG6KAmgzZlOKPBzgCv9MfAoqNTFjATmsREBjZVPCmSVl9V/exec";
 
         let dataHistori = [];
@@ -162,22 +162,37 @@
         document.getElementById('inputTanggal').valueAsDate = new Date();
 
         // ==========================================
-        // 2. BACA DATA BERAT DARI FIREBASE (Real-time jembatan)
+        // 2. BACA DATA BERAT DARI FIREBASE (Membaca format objek JSON dari timbangan)
         // ==========================================
         const beratRef = database.ref('timbangan/berat');
         
         beratRef.on('value', (snapshot) => {
-            const dataVal = snapshot.val();
             const statusEl = document.getElementById('statusKoneksi');
+            let latestWeight = "0.00";
 
-            if (dataVal !== null) {
-                beratSekarang = parseFloat(dataVal).toFixed(2);
+            if (snapshot.exists()) {
+                // Karena data numpuk dengan ID acak, kita loop dan ambil yang paling terakhir
+                snapshot.forEach((childSnapshot) => {
+                    let childData = childSnapshot.val();
+                    if(childData && childData.weight) {
+                        latestWeight = childData.weight;
+                    }
+                });
+
+                beratSekarang = parseFloat(latestWeight).toFixed(2);
+                
+                // Cegah hasil NaN jika error parsing
+                if (isNaN(beratSekarang)) beratSekarang = "0.00";
+
                 document.getElementById('displayBerat').innerText = beratSekarang + " KG";
                 statusEl.innerText = "Timbangan Terkoneksi (Firebase)";
                 statusEl.classList.add('connected');
+                statusEl.classList.remove('disconnected');
             } else {
                 beratSekarang = "0.00";
                 document.getElementById('displayBerat').innerText = "0.00 KG";
+                statusEl.innerText = "Menunggu data dari timbangan...";
+                statusEl.classList.remove('connected');
             }
         });
 
@@ -211,44 +226,36 @@
             formData.append('waste', waste);
             formData.append('berat', beratSekarang);
 
-            // Kirim ke Google Sheets via Apps Script (Fetch POST)
+            // Kirim ke Google Sheets via Apps Script
             fetch(scriptURL, { method: 'POST', body: formData })
                 .then(response => {
                     alert("Data berhasil disimpan ke Spreadsheet!");
                     
-                    // Reset Input Jenis Waste
                     document.getElementById('inputWaste').value = ""; 
                     
-                    // HAPUS (Reset) data timbangan di Firebase jadi 0 setelah berhasil tersimpan
-                    beratRef.set(0); 
+                    // HAPUS SELURUH TUMPUKAN DATA di timbangan/berat agar bersih
+                    beratRef.remove(); 
 
-                    // Refresh data histori dari sheet
                     loadDataDariSpreadsheet();
                 })
                 .catch(error => {
-                    alert("Gagal menyimpan data! (Pastikan URL Apps Script sudah diisi)");
+                    alert("Gagal menyimpan data! Periksa koneksi internet.");
                     console.error('Error!', error.message);
                 })
                 .finally(() => {
-                    // Kembalikan tombol seperti semula
                     btnSimpan.innerText = "SIMPAN KE SPREADSHEET";
                     btnSimpan.disabled = false;
                 });
         }
 
         // ==========================================
-        // 4. FUNGSI BACA HISTORI DARI SPREADSHEET (CSV)
+        // 4. FUNGSI BACA HISTORI DARI SPREADSHEET
         // ==========================================
         async function loadDataDariSpreadsheet() {
             try {
-                // Ambil data CSV dari link publikasi Sheet
                 const response = await fetch(csvSheetURL);
                 const csvText = await response.text();
-                
-                // Parse CSV ke Array Object
                 dataHistori = parseCSV(csvText);
-                
-                // Tampilkan ke tabel
                 renderTabel(dataHistori);
             } catch (error) {
                 console.error("Gagal menarik data dari Spreadsheet", error);
@@ -256,17 +263,14 @@
             }
         }
 
-        // Fungsi manual untuk memecah teks CSV jadi array (karena kita gak pakai library tambahan)
         function parseCSV(str) {
             const baris = str.split('\n');
             const hasil = [];
             
-            // Asumsi baris 0 adalah Header tabel (Tanggal, Waktu, dll). Kita mulai dari baris 1
             for (let i = 1; i < baris.length; i++) {
-                if (baris[i].trim() === '') continue; // lewati baris kosong
+                if (baris[i].trim() === '') continue; 
                 
                 const kolom = baris[i].split(',');
-                // Urutan array ini harus SESUAI dengan urutan kolom di Spreadsheet Anda (A, B, C, D, E, F)
                 hasil.push({
                     tanggal: kolom[0] ? kolom[0].trim() : '',
                     waktu: kolom[1] ? kolom[1].trim() : '',
@@ -276,7 +280,6 @@
                     berat: kolom[5] ? kolom[5].trim() : ''
                 });
             }
-            // Dibalik agar data terbaru (baris terbawah di sheet) muncul di paling atas web
             return hasil.reverse(); 
         }
 
@@ -296,7 +299,6 @@
                 document.getElementById('page-histori').classList.remove('hidden');
                 document.getElementById('btnHistori').classList.add('active');
                 
-                // Ketika buka halaman histori, tarik ulang data terbarunya dari Sheet
                 loadDataDariSpreadsheet(); 
             }
         }
@@ -339,7 +341,6 @@
             renderTabel(dataHistori);
         }
 
-        // Jalankan fetch pertama kali di belakang layar saat web dibuka
         loadDataDariSpreadsheet();
     </script>
 </body>
