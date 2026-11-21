@@ -22,6 +22,61 @@
         .form-group { margin-bottom: 15px; }
         .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
         .form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+
+        /* Fitur Search Dropdown Mesin */
+        .mesin-search-wrapper { position: relative; }
+        .mesin-search-input { padding-right: 32px !important; cursor: text; background-color: white; }
+        .mesin-search-arrow { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); pointer-events: none; color: #555; font-size: 12px; }
+        .mesin-dropdown-list {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #ccc;
+            border-top: none;
+            border-radius: 0 0 4px 4px;
+            max-height: 260px;
+            overflow-y: auto;
+            z-index: 1000;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.12);
+        }
+        .mesin-group-label {
+            padding: 6px 12px;
+            font-size: 12px;
+            font-weight: bold;
+            color: #0056b3;
+            background-color: #e9ecef;
+            border-top: 1px solid #ddd;
+            border-bottom: 1px solid #ddd;
+            position: sticky;
+            top: 0;
+        }
+        .mesin-option {
+            padding: 9px 14px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .mesin-option:hover {
+            background-color: #007bff;
+            color: white;
+        }
+        .mesin-option.selected {
+            background-color: #e7f1ff;
+            font-weight: bold;
+            color: #0056b3;
+        }
+        .mesin-option.selected:hover {
+            background-color: #007bff;
+            color: white;
+        }
+        .mesin-empty {
+            padding: 12px;
+            text-align: center;
+            color: #777;
+            font-style: italic;
+            font-size: 14px;
+        }
         
         /* Tampilan Timbangan Digital */
         .digital-scale { background-color: #222; color: #0f0; font-family: 'Courier New', Courier, monospace; font-size: 60px; padding: 40px; border-radius: 10px; border: 5px solid #444; width: 80%; margin-bottom: 20px; letter-spacing: 2px; }
@@ -80,51 +135,70 @@
                     </div>
                     <div class="form-group">
                         <label>Mesin</label>
-                        <select id="inputMesin">
+                        <div class="mesin-search-wrapper">
+                            <input type="text" id="searchMesinInput" class="mesin-search-input" placeholder="-- Pilih / Cari Mesin --" autocomplete="off">
+                            <span class="mesin-search-arrow">▼</span>
+                            <div id="mesinDropdownList" class="mesin-dropdown-list hidden"></div>
+                        </div>
+                        <select id="inputMesin" class="hidden">
                             <option value="">-- Pilih Mesin --</option>
-                            <option value="TW002">TW002</option>
-                            <option value="TW404">TW404</option>
-                            <option value="TW405">TW405</option>
-                            <option value="JT005">JT005</option>
-                            <option value="FC121">FC121</option>
-                            <option value="TW406">TW406</option>
-                            <option value="TW407">TW407</option>
-                            <option value="NP313">NP313</option>
-                            <option value="FC122">FC122</option>
-                            <option value="JT006">JT006</option>
-                            <option value="TL204">TL204</option>
-                            <option value="NP314">NP314</option>
-                            <option value="NP315">NP315</option>
-                            <option value="TW408">TW408</option>
-                            <option value="TW409">TW409</option>
-                            <option value="HRT001">HRT001</option>
-                            <option value="HRT002">HRT002</option>
-                            <option value="NP002">NP002</option>
-                            <option value="NP007">NP007</option>
-                            <option value="NP317">NP317</option>
-                            <option value="NP318">NP318</option>
-                            <option value="NP319">NP319</option>
-                            <option value="NP321">NP321</option>
-                            <option value="NP320">NP320</option>
-                            <option value="TW410">TW410</option>
-                            <option value="NP316">NP316</option>
-                            <option value="TW411">TW411</option>
-                            <option value="FC118">FC118</option>
-                            <option value="HRT003">HRT003</option>
-                            <option value="TW412">TW412</option>
-                            <option value="TW413">TW413</option>
-                            <option value="NP322">NP322</option>
-                            <option value="MP323">NP323</option>
-                            <option value="NP324">NP324</option>
-                            <option value="FC108">FC108</option>
-                            <option value="FC103">FC103</option>
-                            <option value="HRT004">HRT004</option>
-                            <option value="SLITTING CORE">SLITTING CORE</option>
-                            <option value="PAPER CORE">PAPER CORE</option>
-                            <option value="SHRINK WRAP">SHRINK WRAP</option>
-                            <option value="LITHO">LITHO</option>
-                            <option value="CUBE">CUBE</option>
-                            <option value="SEALING">SEALING</option>
+                            <optgroup label="FC">
+                                <option value="FC103">FC103</option>
+                                <option value="FC108">FC108</option>
+                                <option value="FC118">FC118</option>
+                                <option value="FC121">FC121</option>
+                                <option value="FC122">FC122</option>
+                            </optgroup>
+                            <optgroup label="HRT">
+                                <option value="HRT001">HRT001</option>
+                                <option value="HRT002">HRT002</option>
+                                <option value="HRT003">HRT003</option>
+                                <option value="HRT004">HRT004</option>
+                            </optgroup>
+                            <optgroup label="JT">
+                                <option value="JT005">JT005</option>
+                                <option value="JT006">JT006</option>
+                            </optgroup>
+                            <optgroup label="NP">
+                                <option value="NP002">NP002</option>
+                                <option value="NP007">NP007</option>
+                                <option value="NP313">NP313</option>
+                                <option value="NP314">NP314</option>
+                                <option value="NP315">NP315</option>
+                                <option value="NP316">NP316</option>
+                                <option value="NP317">NP317</option>
+                                <option value="NP318">NP318</option>
+                                <option value="NP319">NP319</option>
+                                <option value="NP320">NP320</option>
+                                <option value="NP321">NP321</option>
+                                <option value="NP322">NP322</option>
+                                <option value="MP323">NP323</option>
+                                <option value="NP324">NP324</option>
+                            </optgroup>
+                            <optgroup label="TL">
+                                <option value="TL204">TL204</option>
+                            </optgroup>
+                            <optgroup label="TW">
+                                <option value="TW002">TW002</option>
+                                <option value="TW404">TW404</option>
+                                <option value="TW405">TW405</option>
+                                <option value="TW406">TW406</option>
+                                <option value="TW407">TW407</option>
+                                <option value="TW408">TW408</option>
+                                <option value="TW409">TW409</option>
+                                <option value="TW410">TW410</option>
+                                <option value="TW411">TW411</option>
+                                <option value="TW412">TW412</option>
+                                <option value="TW413">TW413</option>
+                            </optgroup>
+                            <optgroup label="LAINNYA">
+                                <option value="CUBE">CUBE</option>
+                                <option value="LITHO">LITHO</option>
+                                <option value="PAPER CORE">PAPER CORE</option>
+                                <option value="SEALING">SEALING</option>
+                                <option value="SHRINK WRAP">SHRINK WRAP</option>
+                                <option value="SLITTING CORE">SLITTING CORE</option>
+                            </optgroup>
                         </select>
                     </div>
                     <div class="form-group">
@@ -383,6 +457,123 @@
             document.getElementById('filterTanggal').value = '';
             renderTabel(dataHistori);
         }
+
+        // ==========================================
+        // 5. FITUR SEARCH DROPDOWN MESIN
+        // ==========================================
+        (function initSearchMesin() {
+            const selectMesin = document.getElementById('inputMesin');
+            const searchInput = document.getElementById('searchMesinInput');
+            const dropdownList = document.getElementById('mesinDropdownList');
+
+            const daftarGrup = [];
+            const semuaOpsi = [];
+
+            Array.from(selectMesin.children).forEach(child => {
+                if (child.tagName === 'OPTGROUP') {
+                    const items = Array.from(child.children).map(opt => {
+                        const obj = { value: opt.value, text: opt.textContent.trim() };
+                        semuaOpsi.push(obj);
+                        return obj;
+                    });
+                    daftarGrup.push({ label: child.label, items: items });
+                } else if (child.tagName === 'OPTION' && child.value !== '') {
+                    const obj = { value: child.value, text: child.textContent.trim() };
+                    semuaOpsi.push(obj);
+                    daftarGrup.push({ label: '', items: [obj] });
+                }
+            });
+
+            function renderList(keyword = '') {
+                const q = keyword.trim().toLowerCase();
+                dropdownList.innerHTML = '';
+                let adaHasil = false;
+
+                daftarGrup.forEach(grup => {
+                    const cocok = grup.items.filter(item =>
+                        item.text.toLowerCase().includes(q) || item.value.toLowerCase().includes(q)
+                    );
+
+                    if (cocok.length > 0) {
+                        adaHasil = true;
+                        if (grup.label) {
+                            const groupEl = document.createElement('div');
+                            groupEl.className = 'mesin-group-label';
+                            groupEl.textContent = grup.label;
+                            dropdownList.appendChild(groupEl);
+                        }
+
+                        cocok.forEach(item => {
+                            const optEl = document.createElement('div');
+                            optEl.className = 'mesin-option';
+                            if (selectMesin.value === item.value) {
+                                optEl.classList.add('selected');
+                            }
+                            optEl.textContent = item.text;
+                            optEl.addEventListener('mousedown', (e) => {
+                                e.preventDefault();
+                                pilihMesin(item);
+                            });
+                            dropdownList.appendChild(optEl);
+                        });
+                    }
+                });
+
+                if (!adaHasil) {
+                    const emptyEl = document.createElement('div');
+                    emptyEl.className = 'mesin-empty';
+                    emptyEl.textContent = 'Mesin tidak ditemukan';
+                    dropdownList.appendChild(emptyEl);
+                }
+            }
+
+            function pilihMesin(item) {
+                selectMesin.value = item.value;
+                searchInput.value = item.text;
+                dropdownList.classList.add('hidden');
+                searchInput.blur();
+            }
+
+            searchInput.addEventListener('focus', () => {
+                renderList('');
+                dropdownList.classList.remove('hidden');
+                searchInput.select();
+            });
+
+            searchInput.addEventListener('input', () => {
+                const q = searchInput.value.trim();
+                renderList(q);
+                dropdownList.classList.remove('hidden');
+
+                const exact = semuaOpsi.find(item => item.text.toLowerCase() === q.toLowerCase());
+                selectMesin.value = exact ? exact.value : '';
+            });
+
+            searchInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const q = searchInput.value.trim().toLowerCase();
+                    const match = semuaOpsi.find(item => item.text.toLowerCase() === q) ||
+                                  semuaOpsi.find(item => item.text.toLowerCase().includes(q));
+                    if (match && q !== '') {
+                        pilihMesin(match);
+                    }
+                } else if (e.key === 'Escape') {
+                    dropdownList.classList.add('hidden');
+                    searchInput.blur();
+                }
+            });
+
+            searchInput.addEventListener('blur', () => {
+                dropdownList.classList.add('hidden');
+                if (selectMesin.value === '') {
+                    searchInput.value = '';
+                } else {
+                    const current = semuaOpsi.find(item => item.value === selectMesin.value);
+                    if (current) searchInput.value = current.text;
+                }
+            });
+        })();
 
         loadDataDariSpreadsheet();
     </script>
